@@ -14,12 +14,15 @@ class WSSwitch
 
 	init()
 	{
-		if(this.server)
+		if(this.server && this.server.on)
 			this.server.on('connection', this.switchRequest.bind(this));
 	}
 
 	addHandler(path, handler)
 	{
+		if(typeof(path) === 'string' || (path && path instanceof RegExp))
+			path = { pathname: path };
+
 		let handleFunction;
 		switch(typeof(handler))
 		{
@@ -29,32 +32,34 @@ class WSSwitch
 			case 'object':
 				if(!handler || typeof(handler.handle) !== 'function')
 					throw new Error('handler must have a function called \'handle\'');
+
 				handleFunction = handler.handle.bind(handler);
 				break;
 			default:
 				throw new Error('handler must be function or object');
 		}
+
 		this.handlers.push(
 			{
-				path,
-				isRegex: path instanceof RegExp,
+				pattern: path,
 				handle: handleFunction
 			}
 		);
+
 		return this;
 	}
 
 	switchRequest(ws)
 	{
-		var pathname = url.parse(ws.upgradeReq.url).pathname;
+		let requestURL = url.parse(ws.upgradeReq.url);
 
 		if(!this.handlers || !this.handlers.length)
 		{
-			endWS(ws);
+			endWS(ws, 'No handlers specified');
 			return;
 		}
 
-		let handler = this.findHandler(pathname)
+		let handler = this.findHandler(requestURL);
 		if(handler)
 		{
 			let promise = handler.handle(ws);
@@ -69,26 +74,50 @@ class WSSwitch
 		}
 		else
 		{
-			endWS(ws);
+			endWS(ws, 'No handler matched');
 		}
+
 		return handler;
 	}
-	findHandler(pathname)
+	findHandler(requestURL)
 	{
 		return this.handlers.find((handler) =>
-				pathname == handler.path
-			|| 	(
-					handler.isRegex
-				&& 	handler.path.test(pathname)
-				)
-			);
+		{
+			let pattern = handler.pattern;
+			return 	matches(pattern.pathname || pattern.path, requestURL.pathname)
+				&&	matches(pattern.hostname || pattern.host, requestURL.hostname)
+				&&	matches(pattern.port, requestURL.port);
+		});
 	}
 }
 
 WSSwitch.prototype.for = WSSwitch.addHandler;
 
-function endWS(ws)
+function matches(pattern, value)
 {
+	if(!pattern)
+		return true;
+
+	if(typeof(pattern) === 'string')
+		return value === pattern;
+	
+	if(pattern instanceof RegExp)
+		return pattern.test(value);
+
+	return false;
+}
+function endWS(ws, message)
+{
+	if(message)
+	{
+		try
+		{
+			ws.send(message);
+		}
+		catch(x)
+		{}
+	}
+
 	try
 	{
 		ws.terminate();

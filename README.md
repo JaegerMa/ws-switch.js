@@ -36,6 +36,10 @@ let handler404 =
 	}
 };
 
+wsSwitch.for({ hostname: 'example.com' }, handler404); //Handles every request for example.com
+
+wsSwitch.for({ hostname: '.+\.example.com', pathname: /^/ }, handler404); //Handles every request for *.example.com
+
 wsSwitch.for(/^/, handler404); //Handles every request
 ```
 
@@ -75,36 +79,44 @@ wsSwitch.on(/^\/foo/, async (ws) =>
 ### `new WSSwitch(server)`
 
 #### arguments
-
 - `server: object`  
 Any object compatible to ws.Server
 
 #### returns
-
 - `WSSwitch: object`
 
-### `WSSwitch.for(path, onConnection)`
+### `WSSwitch.for(pathname, onConnection)`
 
 #### arguments
-
 - `path: string or RegExp`
 - `onConnection: function(websocket)`
 
 #### returns
-
 - `this`
+
+### `WSSwitch.for(path, onConnection)`
+
+#### arguments
+- `path: object`
+	- `pathname | path: string or RegExp`
+	- `hostname | host: string or RegExp`
+	- `port: int`
+- `onConnection: function(websocket)`
+
+#### returns
+- `this`
+
+### `WSSwitch.addHandler(pathname, onConnection)`
+Same as `WSSwitch.for`
 
 ### `WSSwitch.addHandler(path, onConnection)`
 Same as `WSSwitch.for`
 
 ### `WSSwitch.switchRequest(websocket)`
-
 If a WebSocket-Server is given in constructor, this method is called automatically
 
 #### arguments
-
 - `websocket: WebSocket`
 
 #### returns
-
 - `handler: object`
