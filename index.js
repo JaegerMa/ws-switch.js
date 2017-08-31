@@ -49,9 +49,13 @@ class WSSwitch
 		return this;
 	}
 
-	switchRequest(ws)
+	switchRequest(ws, request)
 	{
-		let requestURL = url.parse(ws.upgradeReq.url);
+		request = request || ws.upgradeReq;
+		if(!request)
+			endWS(ws, 'Upgrade request not available');
+
+		let requestURL = url.parse(request.url);
 
 		if(!this.handlers || !this.handlers.length)
 		{
@@ -62,7 +66,7 @@ class WSSwitch
 		let handler = this.findHandler(requestURL);
 		if(handler)
 		{
-			let promise = handler.handle(ws);
+			let promise = handler.handle(ws, request);
 			if(promise && promise instanceof Promise)
 			{
 				promise.catch((x) =>

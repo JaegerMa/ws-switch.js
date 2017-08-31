@@ -15,6 +15,10 @@ const WSSwitch = require('ws-switch');
 
 let server = new WS.Server({ port: 1234 });
 let wsSwitch = new WSSwitch(server);
+//You can also ommit the server and pass new ws-objects directly to wsSwitch.switchRequest
+//But notice: As ws removed the upgradeReq-attribute you either must commit it to the switchRequest-method
+//or place it manually as upgradeReq into the ws-object.
+
 
 wsSwitch.for('/', (ws) => //Handles requests matching string '/'
 {
@@ -81,6 +85,7 @@ wsSwitch.on(/^\/foo/, async (ws) =>
 #### arguments
 - `server: object`  
 Any object compatible to ws.Server
+If ommited, you have to pass websockets **and their upgradeRequests** manually via the switchRequest-method
 
 #### returns
 - `WSSwitch: object`
@@ -112,11 +117,12 @@ Same as `WSSwitch.for`
 ### `WSSwitch.addHandler(path, onConnection)`
 Same as `WSSwitch.for`
 
-### `WSSwitch.switchRequest(websocket)`
+### `WSSwitch.switchRequest(websocket, upgradeRequest)`
 If a WebSocket-Server is given in constructor, this method is called automatically
 
 #### arguments
 - `websocket: WebSocket`
+- `upgradeRequest: HTTP.IncommingMessage`
 
 #### returns
 - `handler: object`
